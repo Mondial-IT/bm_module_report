@@ -139,14 +139,28 @@ final class ModuleReportController extends ControllerBase {
   }
 
   /**
-   * Download the composer.json-ready lines for packages with >= 1 enabled module.
-   * Example line: "drupal/admin_toolbar": "^3.6",
+   * Download a JSON file with "require" and "require-dev" sections.
+   *
+   * - "require": packages with >= 1 enabled module.
+   * - "require-dev": packages present but with no enabled modules.
+   *
+   * Example:
+   * {
+   *   "require": {
+   *     "drupal/admin_toolbar": "^3.6"
+   *   },
+   *   "require-dev": {
+   *     "drupal/devel": "^5.1"
+   *   }
+   * }
    */
   public function download(): Response {
     $extensions = $this->moduleList->reset()->getList();
     $packageMap = $this->buildComposerPackageMap();
 
-    $byPackage = []; // pkg => ['any_enabled' => bool, 'constraint' => '^x.y'|'dev-main'|'*']
+    // pkg => ['any_enabled' => bool, 'constraint' => '^x.y'|'dev-*'|'*']
+    $byPackage = [];
+
     /** @var \Drupal\Core\Extension\Extension $ext */
     foreach ($extensions as $machineName => $ext) {
       if ($this->isCoreModule($ext)) {
@@ -157,30 +171,44 @@ final class ModuleReportController extends ControllerBase {
       if (!$pkg) {
         continue;
       }
-      $enabled = $this->moduleHandler()->moduleExists($machineName);
 
+      // Compute/remember the version constraint from InstalledVersions once.
       if (!isset($byPackage[$pkg]['constraint'])) {
         $pretty = $this->getPrettyVersion($pkg);
         $byPackage[$pkg]['constraint'] = $this->constraintForComposerJson($pretty);
       }
+
+      // Track whether any module for this package is enabled.
+      $enabled = $this->moduleHandler()->moduleExists($machineName);
       $byPackage[$pkg]['any_enabled'] = ($byPackage[$pkg]['any_enabled'] ?? false) || $enabled;
     }
 
-    $lines = [];
+    // Split into require vs require-dev.
+    $require = [];
+    $requireDev = [];
     foreach ($byPackage as $pkg => $info) {
+      $constraint = $info['constraint'] ?? '*';
       if (!empty($info['any_enabled'])) {
-        $constraint = $info['constraint'] ?? '*';
-        $lines[] = sprintf('"%s": "%s",', $pkg, $constraint);
+        $require[$pkg] = $constraint;
+      } else {
+        $requireDev[$pkg] = $constraint;
       }
     }
 
-    $lines = array_values(array_unique($lines));
-    sort($lines, SORT_NATURAL | SORT_FLAG_CASE);
+    // Sort keys for readability.
+    ksort($require, SORT_NATURAL | SORT_FLAG_CASE);
+    ksort($requireDev, SORT_NATURAL | SORT_FLAG_CASE);
 
-    $content = implode("\n", $lines) . "\n";
-    $response = new Response($content);
-    $response->headers->set('Content-Type', 'text/plain; charset=utf-8');
-    $response->headers->set('Content-Disposition', 'attachment; filename="composer-requires.jsonlines.txt"');
+    // Build final JSON (pretty-printed, no trailing commas).
+    $payload = [
+      'require' => (object) $require,        // cast to object to get {} when empty
+      'require-dev' => (object) $requireDev,
+    ];
+    $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
+
+    $response = new Response($json);
+    $response->headers->set('Content-Type', 'application/json; charset=utf-8');
+    $response->headers->set('Content-Disposition', 'attachment; filename="composer.report.json"');
     return $response;
   }
 
