@@ -1,0 +1,11 @@
+{
+    "name": "bluemarloc/bm_module_report",
+    "description": "Drupal 11 admin report for modules and their composer origins.",
+    "type": "drupal-module",
+    "license": "proprietary",
+    "extra": {
+        "drupal": {
+            "package": "Blue Marloc"
+        }
+    }
+}

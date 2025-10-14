@@ -1,0 +1,5 @@
+name: 'BM Module Report'
+type: module
+description: 'Reports modules with disk name, composer package and enabled state.'
+core_version_requirement: '^11'
+package: 'Blue Marloc'
