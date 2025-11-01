@@ -1,0 +1,15 @@
+bm_module_report.report:
+  path: '/admin/reports/module-composer'
+  defaults:
+    _controller: '\Drupal\bm_module_report\Controller\ModuleReportController::report'
+    _title: 'Module Composer Report'
+  requirements:
+    _permission: 'access administration pages'
+
+bm_module_report.download:
+  path: '/admin/reports/module-composer/download'
+  defaults:
+    _controller: '\Drupal\bm_module_report\Controller\ModuleReportController::download'
+    _title: 'Download composer requires'
+  requirements:
+    _permission: 'access administration pages'

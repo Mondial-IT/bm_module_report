@@ -1,0 +1,6 @@
+bm_module_report.report:
+  title: 'Module Composer Report'
+  description: 'See modules, their disk names, composer origin, and enabled state.'
+  route_name: bm_module_report.report
+  parent: system.admin_reports
+  weight: 100
