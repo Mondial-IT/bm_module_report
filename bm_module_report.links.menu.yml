@@ -4,3 +4,10 @@ bm_module_report.report:
   route_name: bm_module_report.report
   parent: system.admin_reports
   weight: 100
+
+bm_module_report.bm_main_report:
+  title: 'Composer Report'
+  description: 'See modules, their disk names, composer origin, and enabled state.'
+  route_name: bm_module_report.report
+  parent: bm_main.bluemarloc_developer
+  weight: 100
